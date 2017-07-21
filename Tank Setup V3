@@ -1,0 +1,125 @@
+@name Aurora's Tank Setup V3
+@inputs Pod:wirelink
+@outputs TurretLatch Throttle Gear RightLatch LeftLatch
+@trigger all
+
+interval(500)
+
+###
+#MADE BY AURORA AKSNES
+###
+
+    GearCount = 8
+    #Make sure the final gear is reverse
+
+##Pod Links
+    Active =    Pod["Active",number]
+    W =         Pod["W",number] 
+    A =         Pod["A",number]  
+    S =         Pod["S",number] 
+    D =         Pod["D",number] 
+    TurretLock =Pod["Light",number]
+    Space =     Pod["Space",number]
+    GearUP =    Pod["Shift",number]
+    GearDOWN =  Pod["Alt",number]
+
+
+
+##Main Code
+
+    if(first()||duped())
+    {
+        Gear = 1
+        TurretLatch = 1
+    }
+
+if(Active == 1)
+{
+    
+    interval(75)
+    
+##Turret Lock
+    
+    if(TurretLock && changed(TurretLock))
+    {
+        TurretLatch = !TurretLatch     
+    }
+    
+
+##Gearing Control
+    
+    if(GearUP && changed(GearUP))
+    {
+        Gear = Gear + 1
+        if(Gear > GearCount)
+        {
+            Gear = GearCount
+        }
+    }
+    if(GearDOWN && changed(GearDOWN))
+    {
+        Gear = Gear - 1
+        if(Gear < 1)
+        {
+            Gear = 1
+        }
+    }
+     
+    if(W == 1)
+    {
+        if(Gear == GearCount) 
+        {
+            Gear = 1
+            Throttle = 100
+        } 
+        else
+        {
+            Throttle = 100
+        }
+    }
+    else
+    {
+        Throttle = 0
+    }
+     
+    if(S == 1)
+    {
+        Throttle = 100
+        Gear = GearCount
+    }
+
+##WeldLatch Control
+    if(Space == 1)
+    {
+        RightLatch = 1
+        LeftLatch = 1    
+    }
+    else
+    {
+        if(A & !D)
+        {
+            LeftLatch = 1
+            Throttle = 100
+        }
+        else
+        {
+            LeftLatch = 0
+        }
+        
+        if(D & !A)
+        {
+            RightLatch = 1
+            Throttle = 100
+        }
+        else
+        {
+            RightLatch = 0
+        }
+        
+    }
+       
+}
+else
+{
+    TurretLatch = 1
+}
