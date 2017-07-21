@@ -1,0 +1,141 @@
+@name Hover Tank V1
+@inputs Bas:entity [Ranger1 Ranger2 Ranger3 Ranger4] Pod:wirelink
+@trigger none
+@persist [Er1 Er2 Er3 Er4] [I1 I2 I3 I4] [Spd1]
+
+#Fully developed by Aurora on [Logic Build]
+
+interval(50)
+
+InertiaMul   = 0.06
+TargetHeight = 100
+ForceClamp   = 200
+Acceleration = 0.75
+MaxSpeed     = 25
+StrafeSpeed  = 7
+TurnSpeed    = 10
+IntegralClamp = 100
+
+#PID
+Kp = 3
+Ki = 0.1
+Kd = 30
+
+
+#Don't touch below here
+
+#Pod Links
+W     = Pod["W"     ,number]
+A     = Pod["A"     ,number]
+S     = Pod["S"     ,number]
+D     = Pod["D"     ,number]
+Space = Pod["Space" ,number]
+M1    = Pod["Mouse1",number]
+M2    = Pod["Mouse2",number]
+
+#Setting commonly used operations as variables
+BasUP    = Bas:up()
+BasFORD  = Bas:forward()
+BasRIGHT = Bas:right()
+BasInrt  = Bas:inertia()
+Size     = Bas:boxSize() 
+
+#Leaning
+TargetHeightLeft = TargetHeight + -((A-D)*10)
+TargetHeightRight = TargetHeight +  ((A-D)*10)
+
+#Power Cutoff if too high
+if(((Ranger1+Ranger2+Ranger3+Ranger4)/4) > 200 || (Ranger1+Ranger2+Ranger3+Ranger4)/4 == 0){
+    Force1 = 0
+    Force2 = 0 
+    Force3 = 0
+    Force4 = 0
+}
+else
+{ 
+#PID1
+Er1 = TargetHeightLeft - Ranger1
+P1  =  Er1    * Kp
+I1 +=  Er1    * Ki
+D1  = $Er1    * Kd
+Force1  = clamp(P1 + clamp(I1,-IntegralClamp,IntegralClamp) + D1, 0, ForceClamp)
+#PID2
+Er2 = TargetHeightRight- Ranger2
+P2  =  Er2    * Kp
+I2 +=  Er2    * Ki
+D2  = $Er2    * Kd
+Force2  = clamp(P2 + clamp(I2,-IntegralClamp,IntegralClamp) + D2, 0, ForceClamp)
+#PID3
+Er3 = TargetHeightLeft - Ranger3
+P3  =  Er3    * Kp
+I3 +=  Er3    * Ki
+D3  = $Er3    * Kd
+Force3  = clamp(P3 + clamp(I3,-IntegralClamp,IntegralClamp) + D3, 0, ForceClamp) 
+#PID4
+Er4 = TargetHeightRight - Ranger4
+P4  =  Er4    * Kp
+I4 +=  Er4    * Ki
+D4  = $Er4    * Kd
+Force4  = clamp(P4 + clamp(I4,-IntegralClamp,IntegralClamp) + D4, 0, ForceClamp)
+}
+
+#Average of forces (for upward force)
+AvgForce = (Force1 + Force2 + Force3 + Force4)/4
+
+#XYZ of Box Size
+SizeX = Size:x()
+SizeY = Size:y()
+SizeZ = Size:z()
+
+#Corners of box
+CornerPos  =  (BasFORD*SizeX/2)-(BasRIGHT*SizeY/2)
+CornerPos2 = -(BasFORD*SizeX/2)+(BasRIGHT*SizeY/2)
+CornerPos3 = -(BasFORD*SizeX/2)-(BasRIGHT*SizeY/2)
+CornerPos4 =  (BasFORD*SizeX/2)+(BasRIGHT*SizeY/2)
+
+#Offsets [Force]
+CornerOffset  = CornerPos  - BasUP*Force1*BasInrt*InertiaMul
+CornerOffset2 = CornerPos2 - BasUP*Force2*BasInrt*InertiaMul
+CornerOffset3 = CornerPos3 - BasUP*Force3*BasInrt*InertiaMul
+CornerOffset4 = CornerPos4 - BasUP*Force4*BasInrt*InertiaMul
+
+#Stabilizing forces
+Bas:applyOffsetForce(CornerPos , CornerOffset )
+Bas:applyOffsetForce(CornerPos2, CornerOffset2)
+Bas:applyOffsetForce(CornerPos3, CornerOffset3)
+Bas:applyOffsetForce(CornerPos4, CornerOffset4)
+
+#Upward force
+Bas:applyForce( BasUP * AvgForce * Bas:mass() )
+
+#Setup (remove comment for wiring rangers)
+#[
+holoCreate(1,Bas:pos()+CornerPos)
+holoPos(1,Bas:pos()+CornerPos)
+holoModel(1,"models/sprops/misc/alphanum/alphanum_1.mdl")
+holoCreate(2,Bas:pos()+CornerPos2)
+holoPos(2,Bas:pos()+CornerPos2)
+holoModel(2,"models/sprops/misc/alphanum/alphanum_2.mdl")
+holoCreate(3,Bas:pos()+CornerPos3)
+holoPos(3,Bas:pos()+CornerPos3)
+holoModel(3,"models/sprops/misc/alphanum/alphanum_3.mdl")
+holoCreate(4,Bas:pos()+CornerPos4)
+holoPos(4,Bas:pos()+CornerPos4)
+holoModel(4,"models/sprops/misc/alphanum/alphanum_4.mdl")
+]#
+
+
+
+#Drag 
+Bas:applyForce(-Bas:vel() * 750 )
+Bas:applyAngForce(-Bas:angVel()*Bas:mass() * 5 )
+
+#Movement
+if(W == 1){Spd1+=Acceleration}elseif(S == 1){Spd1-=Acceleration}else{Spd1-=Spd1/5}
+Bas:applyForce( ( Bas:forward() * clamp(Spd1,-MaxSpeed,MaxSpeed) ) * Bas:mass() )
+
+#Turning
+Bas:applyTorque(vec(0,0,TurnSpeed*10) * (A-D) * Bas:mass() ) 
+
+#Strafing
+Bas:applyForce( (-Bas:right() * (M1-M2) * StrafeSpeed) * Bas:mass() )
