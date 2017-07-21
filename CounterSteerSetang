@@ -1,0 +1,34 @@
+@name Aurora's Steering E2
+@inputs [Pod Chassis]:wirelink
+@persist [E C]:entity [Steering_Angle Max_Steering_Angle Max_Steering_Speed A D Vel Steering_Angle_Final ]:number
+@trigger 
+@model models/sprops/geometry/t_fdisc_18.mdl
+interval(33)
+
+if(first()|dupefinished()){
+    
+    E = entity()
+    C = Chassis:entity()
+    Max_Steering_Angle = 45
+    Max_Steering_Speed = 1.5
+
+}
+
+A = Pod:number("A")
+D = Pod:number("D")
+
+Vel = C:vel():length()
+if(Vel > 30 && -C:velL():x() >= 0){VelAng = clamp(C:velL():toAngle():yaw()-180,-40,40)}else{VelAng = 0}
+
+
+Steering_Angle+=(A-D)*Max_Steering_Speed
+Steering_Angle-=(Steering_Angle)*(Vel/8000)
+Steering_Angle=clamp(Steering_Angle,-Max_Steering_Angle,Max_Steering_Angle)
+Steering_Angle_Final+=(Steering_Angle-Steering_Angle_Final)*0.5
+
+if(!E:isPlayerHolding()) {
+    
+    E:setAng(C:toWorld(ang(20,Steering_Angle_Final+VelAng,0)))
+    E:propFreeze(1)
+    
+}
